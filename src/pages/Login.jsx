@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import apiClient from "../services/apiClient";
 
@@ -80,6 +80,13 @@ export default function Login() {
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
+
+      <p className="mt-5 text-center text-sm text-slate-400">
+        Don&apos;t have an account?{" "}
+        <Link to="/register" className="text-teal-400 hover:underline">
+          Register
+        </Link>
+      </p>
     </section>
   );
 }

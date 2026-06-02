@@ -1,6 +1,7 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiError } from "../../utils/apiError.js";
 import { uploadBuffer, deleteAsset } from "../../utils/cloudinaryUpload.js";
+import { cloudinary } from "../../config/cloudinary.js";
 import { Portfolio } from "../portfolios/portfolio.model.js";
 import { Project } from "../projects/project.model.js";
 import { Certificate } from "../certificates/certificate.model.js";
@@ -170,27 +171,38 @@ function proxyResume(mode) {
     const { portfolioSlug } = req.params;
 
     const portfolio = await Portfolio.findOne({ portfolioSlug }).select(
-      "resumeUrl portfolioSlug"
+      "resumePublicId portfolioSlug"
     );
     if (!portfolio) throw new ApiError(404, "Portfolio not found");
-    if (!portfolio.resumeUrl) throw new ApiError(404, "No resume uploaded for this portfolio");
+    if (!portfolio.resumePublicId) throw new ApiError(404, "No resume uploaded for this portfolio");
 
-    // Validate the stored URL is a Cloudinary URL (prevent SSRF)
-    const url = portfolio.resumeUrl;
-    if (!url.startsWith("https://res.cloudinary.com/")) {
-      throw new ApiError(500, "Invalid resume URL configuration");
-    }
+    // Cloudinary Free plan blocks CDN delivery (HTTP 401) even for server-side requests.
+    // private_download_url routes through the Admin API endpoint (api.cloudinary.com)
+    // which uses API key/secret authentication — bypassing CDN restrictions entirely.
+    //
+    // For raw resources the public_id INCLUDES the extension (e.g. "path/file.pdf").
+    // Pass the full public_id and an empty format string so the SDK doesn't append
+    // a redundant ".pdf" suffix to the URL.
+    const authenticatedUrl = cloudinary.utils.private_download_url(
+      portfolio.resumePublicId, // full ID including .pdf extension
+      "",                       // format already embedded in publicId for raw resources
+      {
+        resource_type: "raw",
+        type: "upload",
+        expires_at: Math.floor(Date.now() / 1000) + 300, // valid for 5 minutes
+      }
+    );
 
     await new Promise((resolve, reject) => {
-      https.get(url, (cloudinaryRes) => {
+      https.get(authenticatedUrl, (cloudinaryRes) => {
         if (cloudinaryRes.statusCode !== 200) {
-          reject(new ApiError(502, `Cloudinary returned ${cloudinaryRes.statusCode}`));
+          reject(new ApiError(502, `Storage returned ${cloudinaryRes.statusCode}`));
           cloudinaryRes.resume();
           return;
         }
 
         res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Cache-Control", "private, max-age=300");
+        res.setHeader("Cache-Control", "private, max-age=0"); // no caching — URL is short-lived
 
         if (mode === "download") {
           const filename = `resume-${portfolioSlug}.pdf`;
@@ -210,7 +222,7 @@ function proxyResume(mode) {
         cloudinaryRes.on("end", resolve);
         cloudinaryRes.on("error", reject);
       }).on("error", (err) => {
-        reject(new ApiError(502, `Failed to reach Cloudinary: ${err.message}`));
+        reject(new ApiError(502, `Storage fetch failed: ${err.message}`));
       });
     });
   });

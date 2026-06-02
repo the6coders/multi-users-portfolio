@@ -1,4 +1,4 @@
-﻿import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function Navbar() {
@@ -41,12 +41,22 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className="rounded-md bg-teal-500 px-3 py-1.5 font-medium text-slate-950 hover:bg-teal-400"
-            >
-              Login
-            </Link>
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  isActive ? "text-teal-300" : "text-slate-300 hover:text-white"
+                }
+              >
+                Login
+              </NavLink>
+              <Link
+                to="/register"
+                className="rounded-md bg-teal-500 px-3 py-1.5 font-medium text-slate-950 hover:bg-teal-400"
+              >
+                Register
+              </Link>
+            </>
           )}
         </nav>
       </div>
