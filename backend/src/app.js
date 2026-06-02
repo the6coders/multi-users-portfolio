@@ -11,7 +11,18 @@ import { env } from "./config/env.js";
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow requests with no origin (e.g., curl, Postman) and any localhost port in dev
+      if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || origin === env.CLIENT_URL) {
+        return cb(null, true);
+      }
+      cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());

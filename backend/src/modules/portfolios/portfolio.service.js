@@ -61,8 +61,15 @@ export const portfolioService = {
       throw new ApiError(400, "Request body is required");
     }
 
-    // Strip protected fields
-    const { userId: _u, _id: _i, createdAt: _c, ...safeUpdates } = updates;
+    // Strip protected fields (including Cloudinary internal IDs)
+    const {
+      userId: _u,
+      _id: _i,
+      createdAt: _c,
+      profileImagePublicId: _pip,
+      resumePublicId: _rp,
+      ...safeUpdates
+    } = updates;
 
     // Prevent slug hijacking — re-sanitise if provided
     if (safeUpdates.portfolioSlug) {

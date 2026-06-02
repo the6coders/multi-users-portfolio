@@ -35,6 +35,10 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    imagePublicId: {
+      type: String,
+      default: "",
+    },
     liveUrl: {
       type: String,
       trim: true,

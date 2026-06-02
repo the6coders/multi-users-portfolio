@@ -57,6 +57,19 @@ const portfolioSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    profileImagePublicId: {
+      type: String,
+      default: "",
+    },
+    resumeUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    resumePublicId: {
+      type: String,
+      default: "",
+    },
     themeColor: {
       type: String,
       trim: true,
