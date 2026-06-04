@@ -6,6 +6,7 @@ import projectsRouter from "../modules/projects/projects.route.js";
 import certificatesRouter from "../modules/certificates/certificates.route.js";
 import mediaRouter from "../modules/media/media.route.js";
 import analyticsRouter from "../modules/analytics/analytics.route.js";
+import messagesRouter from "../modules/messages/messages.route.js";
 import healthRouter from "./health.route.js";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.use("/projects", projectsRouter);
 router.use("/certificates", certificatesRouter);
 router.use("/media", mediaRouter);
 router.use("/analytics", analyticsRouter);
+router.use("/messages", messagesRouter);
 
 export default router;

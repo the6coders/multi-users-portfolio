@@ -12,12 +12,12 @@ export default function Navbar() {
         </Link>
 
         <nav aria-label="Main navigation" className="flex min-w-0 items-center gap-2 text-sm sm:gap-4">
-          {/* Hide "Home" on mobile — logo already links home */}
+          {/* Home link */}
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              `hidden sm:block ${isActive ? "text-teal-300" : "text-slate-300 hover:text-white"}`
+              isActive ? "text-teal-300" : "text-slate-300 hover:text-white"
             }
           >
             Home

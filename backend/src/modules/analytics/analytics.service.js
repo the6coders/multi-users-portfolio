@@ -1,6 +1,7 @@
 import { Portfolio } from "../portfolios/portfolio.model.js";
 import { Project } from "../projects/project.model.js";
 import { Certificate } from "../certificates/certificate.model.js";
+import { Message } from "../messages/message.model.js";
 import { ApiError } from "../../utils/apiError.js";
 
 export const analyticsService = {
@@ -50,7 +51,7 @@ export const analyticsService = {
 
   // GET /api/analytics/summary — aggregated stats for the authenticated user
   async getSummary(userId) {
-    const [portfolio, projectAgg, certAgg] = await Promise.all([
+    const [portfolio, projectAgg, certAgg, unreadMessages] = await Promise.all([
       Portfolio.findOne({ userId })
         .select("portfolioViews resumeDownloads")
         .lean(),
@@ -64,6 +65,8 @@ export const analyticsService = {
         { $match: { userId: userId } },
         { $group: { _id: null, totalViews: { $sum: "$viewCount" } } },
       ]),
+
+      Message.countDocuments({ ownerId: userId, isRead: false }),
     ]);
 
     return {
@@ -71,6 +74,7 @@ export const analyticsService = {
       resumeDownloads:  portfolio?.resumeDownloads  ?? 0,
       projectClicks:    projectAgg[0]?.totalClicks  ?? 0,
       certificateViews: certAgg[0]?.totalViews      ?? 0,
+      unreadMessages,
     };
   },
 };

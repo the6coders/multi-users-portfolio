@@ -35,6 +35,11 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
+  // Messages
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -71,6 +76,16 @@ export default function Dashboard() {
       .then((res) => setAnalytics(res.data))
       .catch(() => setAnalytics(null))
       .finally(() => setAnalyticsLoading(false));
+  }, [user?.portfolioSlug]);
+
+  // Fetch inbox messages
+  useEffect(() => {
+    if (!user?.portfolioSlug) { setMessagesLoading(false); return; }
+    setMessagesLoading(true);
+    apiClient.get("/messages?limit=50")
+      .then((res) => setMessages(res.data.messages || []))
+      .catch(() => setMessages([]))
+      .finally(() => setMessagesLoading(false));
   }, [user?.portfolioSlug]);
 
   // ── Portfolio CRUD ───────────────────────────────────────────────
@@ -284,20 +299,107 @@ export default function Dashboard() {
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="mb-4 text-lg font-semibold">Analytics</h2>
           {analyticsLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-24 animate-pulse rounded-xl border border-slate-800 bg-slate-800/50 p-5" />
               ))}
             </div>
           ) : analytics ? (
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               <StatCard icon="👁" label="Portfolio Views"    value={analytics.portfolioViews   ?? 0} />
               <StatCard icon="📄" label="Resume Downloads"  value={analytics.resumeDownloads  ?? 0} />
               <StatCard icon="🚀" label="Project Clicks"    value={analytics.projectClicks    ?? 0} />
               <StatCard icon="🏆" label="Cert Views"        value={analytics.certificateViews ?? 0} />
+              <StatCard icon="📩" label="Unread Messages"   value={analytics.unreadMessages   ?? 0} />
             </div>
           ) : (
             <p className="text-sm text-slate-500">Analytics unavailable.</p>
+          )}
+        </section>
+      )}
+
+      {/* ── Messages Inbox ────────────────────────────────────────── */}
+      {portfolio && (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Messages</h2>
+            {messages.filter((m) => !m.isRead).length > 0 && (
+              <span className="rounded-full bg-teal-500 px-2 py-0.5 text-xs font-bold text-slate-950">
+                {messages.filter((m) => !m.isRead).length}
+              </span>
+            )}
+          </div>
+
+          {messagesLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg border border-slate-800 bg-slate-800/50" />
+              ))}
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center">
+              <p className="text-4xl">📭</p>
+              <p className="mt-3 text-sm text-slate-400">No messages yet. Visitors can send you a message from your public portfolio page.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messages.map((msg) => (
+                <MessageRow
+                  key={msg._id}
+                  msg={msg}
+                  isSelected={selectedMessage?._id === msg._id}
+                  onSelect={async () => {
+                    if (selectedMessage?._id === msg._id) {
+                      setSelectedMessage(null);
+                      return;
+                    }
+                    // Mark as read and load full message
+                    try {
+                      const res = await apiClient.get(`/messages/${msg._id}`);
+                      const full = res.data.message;
+                      setSelectedMessage(full);
+                      // Update the list row to reflect read status
+                      setMessages((prev) =>
+                        prev.map((m) => (m._id === msg._id ? { ...m, isRead: true } : m))
+                      );
+                    } catch {
+                      setSelectedMessage({ ...msg });
+                    }
+                  }}
+                  onDelete={async () => {
+                    try {
+                      await apiClient.delete(`/messages/${msg._id}`);
+                      setMessages((prev) => prev.filter((m) => m._id !== msg._id));
+                      if (selectedMessage?._id === msg._id) setSelectedMessage(null);
+                      showToast("Message deleted.");
+                    } catch {
+                      showToast("Failed to delete message.", "error");
+                    }
+                  }}
+                />
+              ))}
+              {/* Expanded message panel */}
+              {selectedMessage && (
+                <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/60 p-5 text-sm">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="font-semibold text-slate-200 wrap-break-word">{selectedMessage.subject}</p>
+                    <button
+                      onClick={() => setSelectedMessage(null)}
+                      aria-label="Close message"
+                      className="shrink-0 rounded p-1 text-slate-500 hover:text-slate-200"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="mb-1 text-xs text-slate-400">
+                    From: <span className="text-slate-300">{selectedMessage.senderName}</span>
+                    {" · "}<span className="text-teal-400">{selectedMessage.senderEmail}</span>
+                    {" · "}{new Date(selectedMessage.createdAt).toLocaleString()}
+                  </p>
+                  <p className="mt-3 whitespace-pre-wrap text-slate-300 wrap-break-word">{selectedMessage.message}</p>
+                </div>
+              )}
+            </div>
           )}
         </section>
       )}
@@ -581,6 +683,50 @@ export default function Dashboard() {
         />
       )}
     </section>
+  );
+}
+
+function MessageRow({ msg, isSelected, onSelect, onDelete }) {
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition cursor-pointer ${
+        isSelected
+          ? "border-teal-700 bg-teal-900/20"
+          : msg.isRead
+          ? "border-slate-800 bg-slate-800/30 hover:border-slate-700"
+          : "border-teal-900 bg-slate-800/60 hover:border-teal-700"
+      }`}
+    >
+      {/* Unread dot */}
+      <span
+        aria-label={msg.isRead ? "Read" : "Unread"}
+        className={`h-2 w-2 shrink-0 rounded-full ${msg.isRead ? "bg-slate-600" : "bg-teal-400"}`}
+      />
+
+      {/* Message summary — clickable */}
+      <button
+        onClick={onSelect}
+        className="min-w-0 flex-1 text-left"
+      >
+        <div className="flex items-baseline gap-2">
+          <p className="truncate text-sm font-semibold text-slate-200">{msg.senderName}</p>
+          <p className="shrink-0 text-xs text-slate-500">{new Date(msg.createdAt).toLocaleDateString()}</p>
+        </div>
+        <p className="truncate text-xs text-slate-400">{msg.subject}</p>
+        <p className="truncate text-xs text-slate-500">{msg.senderEmail}</p>
+      </button>
+
+      {/* Delete */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        aria-label="Delete message"
+        className="shrink-0 rounded p-1 text-slate-500 transition hover:text-red-400"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
