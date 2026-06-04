@@ -4,8 +4,8 @@ import apiClient from "../services/apiClient";
 import { SkeletonCard } from "../components/common/Skeleton";
 
 const SELECT_CLS =
-  "rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 " +
-  "transition focus:border-teal-500 focus:outline-none cursor-pointer";
+  "w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 " +
+  "transition focus:border-teal-500 focus:outline-none cursor-pointer sm:w-auto";
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -225,8 +225,8 @@ export default function Home() {
     <section>
       {/* ── Page header ───────────────────────── */}
       <header className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">Discover Portfolios</h1>
-        <p className="mt-2 text-slate-400">
+        <h1 className="text-2xl font-bold sm:text-3xl lg:text-4xl">Discover Portfolios</h1>
+        <p className="mt-2 text-sm text-slate-400 sm:text-base">
           Browse talented professionals and explore their projects.
         </p>
       </header>
@@ -252,7 +252,7 @@ export default function Home() {
         </div>
 
         {/* Dropdowns row */}
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
           <label className="sr-only" htmlFor="filter-skill">Filter by skill</label>
           <select
             id="filter-skill"

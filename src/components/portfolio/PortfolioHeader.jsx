@@ -3,7 +3,7 @@ import { trackResumeDownload } from "../../services/analytics";
 export default function PortfolioHeader({ portfolio, owner }) {
   return (
     <section
-      className="relative overflow-hidden rounded-3xl border border-slate-800 bg-linear-to-br from-slate-900 via-slate-900 to-slate-800 p-8 md:p-14"
+      className="relative overflow-hidden rounded-3xl border border-slate-800 bg-linear-to-br from-slate-900 via-slate-900 to-slate-800 p-5 sm:p-8 md:p-14"
       style={{ borderTopColor: portfolio.themeColor, borderTopWidth: "3px" }}
     >
       {/* Decorative blob */}
@@ -12,18 +12,18 @@ export default function PortfolioHeader({ portfolio, owner }) {
         style={{ backgroundColor: portfolio.themeColor }}
       />
 
-      <div className="relative flex flex-col gap-8 md:flex-row md:items-center">
+      <div className="relative flex flex-col gap-6 sm:gap-8 md:flex-row md:items-center">
         {/* Avatar */}
         {portfolio.profileImage ? (
           <img
             src={portfolio.profileImage}
             alt={owner?.name}
-            className="h-32 w-32 shrink-0 rounded-full object-cover"
+            className="h-24 w-24 shrink-0 rounded-full object-cover sm:h-32 sm:w-32"
             style={{ boxShadow: `0 0 0 4px ${portfolio.themeColor}55` }}
           />
         ) : (
           <div
-            className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full text-5xl font-bold text-white"
+            className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full text-4xl font-bold text-white sm:h-32 sm:w-32 sm:text-5xl"
             style={{
               backgroundColor: `${portfolio.themeColor}22`,
               border: `2px solid ${portfolio.themeColor}55`,
@@ -34,18 +34,17 @@ export default function PortfolioHeader({ portfolio, owner }) {
         )}
 
         {/* Info */}
-        <div className="flex-1">
-          <p
-            className="text-sm font-medium uppercase tracking-widest"
-            style={{ color: portfolio.themeColor }}
-          >
-            {portfolio.role}
-          </p>
-          <h1 className="mt-1 text-4xl font-bold text-white md:text-5xl">
-            {owner?.name?.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "Unnamed"}
-          </h1>
-          <p className="mt-3 max-w-xl text-lg leading-relaxed text-slate-300">
-            {portfolio.headline}
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-xs font-medium uppercase tracking-widest sm:text-sm"
+              style={{ color: portfolio.themeColor }}
+            >
+              {portfolio.role}
+            </p>
+            <h1 className="mt-1 wrap-break-word text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+              {owner?.name?.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "Unnamed"}
+            </h1>
+            <p className="mt-2 max-w-xl text-base leading-relaxed text-slate-300 sm:mt-3 sm:text-lg">
           </p>
 
           {/* Social Links */}

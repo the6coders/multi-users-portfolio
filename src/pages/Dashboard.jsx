@@ -264,15 +264,15 @@ export default function Dashboard() {
   return (
     <section className="space-y-8">
       {/* ── Welcome ───────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.name} 👋</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold sm:text-2xl">Welcome back, {user?.name} 👋</h1>
           <p className="mt-1 text-sm text-slate-400">{user?.email}</p>
         </div>
         {portfolio && (
           <Link
             to={`/portfolio/${portfolio.portfolioSlug}`}
-            className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-teal-500 hover:text-teal-400"
+            className="shrink-0 rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:border-teal-500 hover:text-teal-400"
           >
             View Public Page →
           </Link>
@@ -286,15 +286,15 @@ export default function Dashboard() {
           {analyticsLoading ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse rounded-xl border border-slate-800 bg-slate-800/50 p-5 h-24" />
+                <div key={i} className="h-24 animate-pulse rounded-xl border border-slate-800 bg-slate-800/50 p-5" />
               ))}
             </div>
           ) : analytics ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               <StatCard icon="👁" label="Portfolio Views"    value={analytics.portfolioViews   ?? 0} />
               <StatCard icon="📄" label="Resume Downloads"  value={analytics.resumeDownloads  ?? 0} />
               <StatCard icon="🚀" label="Project Clicks"    value={analytics.projectClicks    ?? 0} />
-              <StatCard icon="🏆" label="Certificate Views" value={analytics.certificateViews ?? 0} />
+              <StatCard icon="🏆" label="Cert Views"        value={analytics.certificateViews ?? 0} />
             </div>
           ) : (
             <p className="text-sm text-slate-500">Analytics unavailable.</p>
@@ -595,10 +595,10 @@ function InfoRow({ label, value, valueClass = "text-slate-300" }) {
 
 function StatCard({ icon, label, value }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-5 text-center">
-      <p className="text-3xl">{icon}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-100">{value.toLocaleString()}</p>
-      <p className="mt-1 text-xs text-slate-400">{label}</p>
+    <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-4 text-center sm:p-5">
+      <p className="text-2xl sm:text-3xl">{icon}</p>
+      <p className="mt-1 text-xl font-bold text-slate-100 sm:mt-2 sm:text-2xl">{value.toLocaleString()}</p>
+      <p className="mt-0.5 text-xs text-slate-400 sm:mt-1">{label}</p>
     </div>
   );
 }

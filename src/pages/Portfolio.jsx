@@ -68,12 +68,12 @@ export default function Portfolio() {
   const themeColor = portfolio.themeColor || "#14b8a6";
 
   return (
-    <div className="space-y-20 pb-20">
+    <div className="space-y-12 pb-12 sm:space-y-16 sm:pb-16 lg:space-y-20 lg:pb-20">
       {/* ── 1. HERO ────────────────────────────────────────────────── */}
       <PortfolioHeader portfolio={portfolio} owner={owner} />
 
       {/* ── 2. ABOUT + SKILLS ────────────────────────────────────── */}
-      <section id="about" className="grid gap-12 md:grid-cols-2">
+      <section id="about" className="grid gap-8 md:grid-cols-2 md:gap-12">
         <div>
           <SectionTitle accent={themeColor}>About Me</SectionTitle>
           <p className="mt-4 leading-8 text-slate-300">
