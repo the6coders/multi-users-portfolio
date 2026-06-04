@@ -1,6 +1,7 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiError } from "../../utils/apiError.js";
 import { uploadBuffer, deleteAsset } from "../../utils/cloudinaryUpload.js";
+import { cloudinary } from "../../config/cloudinary.js";
 import { Portfolio } from "../portfolios/portfolio.model.js";
 import { Project } from "../projects/project.model.js";
 import { Certificate } from "../certificates/certificate.model.js";
@@ -165,53 +166,94 @@ export const uploadCertificateImage = asyncHandler(async (req, res) => {
  * Shared internal helper — streams the resume from Cloudinary to the client.
  * @param {"view"|"download"} mode
  */
+/**
+ * Fetch a URL via HTTPS, following up to maxRedirects redirects.
+ * Returns a promise that resolves with the final IncomingMessage stream.
+ */
+function httpsGetFollowRedirects(url, maxRedirects = 5) {
+  return new Promise((resolve, reject) => {
+    const request = (targetUrl, remaining) => {
+      https.get(targetUrl, (res) => {
+        const { statusCode, headers } = res;
+        if ([301, 302, 303, 307, 308].includes(statusCode) && headers.location) {
+          if (remaining === 0) {
+            reject(new Error("Too many redirects"));
+            res.resume();
+            return;
+          }
+          res.resume(); // drain and discard
+          request(headers.location, remaining - 1);
+        } else {
+          resolve(res);
+        }
+      }).on("error", reject);
+    };
+    request(url, maxRedirects);
+  });
+}
+
 function proxyResume(mode) {
   return asyncHandler(async (req, res) => {
     const { portfolioSlug } = req.params;
 
     const portfolio = await Portfolio.findOne({ portfolioSlug }).select(
-      "resumeUrl portfolioSlug"
+      "resumePublicId portfolioSlug"
     );
     if (!portfolio) throw new ApiError(404, "Portfolio not found");
-    if (!portfolio.resumeUrl) throw new ApiError(404, "No resume uploaded for this portfolio");
+    if (!portfolio.resumePublicId)
+      throw new ApiError(404, "No resume uploaded for this portfolio");
 
-    // Validate the stored URL is a Cloudinary URL (prevent SSRF)
-    const url = portfolio.resumeUrl;
-    if (!url.startsWith("https://res.cloudinary.com/")) {
-      throw new ApiError(500, "Invalid resume URL configuration");
+    // Cloudinary Free plan blocks ALL CDN delivery (res.cloudinary.com) with HTTP 401.
+    // private_download_url generates a time-limited signed URL to
+    // api.cloudinary.com — the Admin API endpoint — which uses
+    // API key/secret auth and is NOT subject to CDN Strict Delivery Mode.
+    //
+    // For raw resources the public_id stored in DB includes the file
+    // extension (e.g. "path/file.pdf"). Pass it as-is with format=""
+    // so the SDK doesn't append a second ".pdf" suffix.
+    const signedUrl = cloudinary.utils.private_download_url(
+      portfolio.resumePublicId,
+      "",                // extension already in publicId for raw uploads
+      {
+        resource_type: "raw",
+        type: "upload",
+        expires_at: Math.floor(Date.now() / 1000) + 300, // 5-minute window
+      }
+    );
+
+    let upstream;
+    try {
+      upstream = await httpsGetFollowRedirects(signedUrl);
+    } catch (err) {
+      throw new ApiError(502, `Storage fetch failed: ${err.message}`);
     }
 
+    if (upstream.statusCode !== 200) {
+      upstream.resume();
+      throw new ApiError(502, `Storage returned ${upstream.statusCode}`);
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Cache-Control", "private, max-age=0");
+
+    if (mode === "download") {
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="resume-${portfolioSlug}.pdf"`
+      );
+    } else {
+      res.setHeader("Content-Disposition", "inline");
+    }
+
+    if (upstream.headers["content-length"]) {
+      res.setHeader("Content-Length", upstream.headers["content-length"]);
+    }
+
+    upstream.pipe(res);
     await new Promise((resolve, reject) => {
-      https.get(url, (cloudinaryRes) => {
-        if (cloudinaryRes.statusCode !== 200) {
-          reject(new ApiError(502, `Cloudinary returned ${cloudinaryRes.statusCode}`));
-          cloudinaryRes.resume();
-          return;
-        }
-
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Cache-Control", "private, max-age=300");
-
-        if (mode === "download") {
-          const filename = `resume-${portfolioSlug}.pdf`;
-          res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="${filename}"`
-          );
-        } else {
-          res.setHeader("Content-Disposition", "inline");
-        }
-
-        if (cloudinaryRes.headers["content-length"]) {
-          res.setHeader("Content-Length", cloudinaryRes.headers["content-length"]);
-        }
-
-        cloudinaryRes.pipe(res);
-        cloudinaryRes.on("end", resolve);
-        cloudinaryRes.on("error", reject);
-      }).on("error", (err) => {
-        reject(new ApiError(502, `Failed to reach Cloudinary: ${err.message}`));
-      });
+      upstream.on("end", resolve);
+      upstream.on("error", reject);
+      res.on("error", reject);
     });
   });
 }

@@ -27,7 +27,7 @@ export default function PortfolioHeader({ portfolio, owner }) {
               border: `2px solid ${portfolio.themeColor}55`,
             }}
           >
-            {owner?.name?.[0]?.toUpperCase()}
+            {owner?.name?.[0]?.toUpperCase() || "U"}
           </div>
         )}
 
@@ -40,7 +40,7 @@ export default function PortfolioHeader({ portfolio, owner }) {
             {portfolio.role}
           </p>
           <h1 className="mt-1 text-4xl font-bold text-white md:text-5xl">
-            {owner?.name}
+            {owner?.name?.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "Unnamed"}
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-slate-300">
             {portfolio.headline}

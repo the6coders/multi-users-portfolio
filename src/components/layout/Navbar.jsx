@@ -11,7 +11,7 @@ export default function Navbar() {
           PortfolioHub
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm">
+        <nav aria-label="Main navigation" className="flex items-center gap-4 text-sm">
           <NavLink
             to="/"
             end
@@ -35,18 +35,28 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500"
+                className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-200 transition hover:border-slate-500 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400"
               >
                 Logout
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className="rounded-md bg-teal-500 px-3 py-1.5 font-medium text-slate-950 hover:bg-teal-400"
-            >
-              Login
-            </Link>
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  isActive ? "text-teal-300" : "text-slate-300 hover:text-white"
+                }
+              >
+                Login
+              </NavLink>
+              <Link
+                to="/register"
+                className="rounded-md bg-teal-500 px-3 py-1.5 font-medium text-slate-950 transition hover:bg-teal-400 focus-visible:ring-2 focus-visible:ring-teal-400"
+              >
+                Register
+              </Link>
+            </>
           )}
         </nav>
       </div>
