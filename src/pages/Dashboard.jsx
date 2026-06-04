@@ -31,6 +31,10 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Analytics
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -58,6 +62,16 @@ export default function Dashboard() {
   }, [user?.portfolioSlug]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Fetch analytics summary whenever the portfolio slug is available
+  useEffect(() => {
+    if (!user?.portfolioSlug) { setAnalyticsLoading(false); return; }
+    setAnalyticsLoading(true);
+    apiClient.get("/analytics/summary")
+      .then((res) => setAnalytics(res.data))
+      .catch(() => setAnalytics(null))
+      .finally(() => setAnalyticsLoading(false));
+  }, [user?.portfolioSlug]);
 
   // ── Portfolio CRUD ───────────────────────────────────────────────
   const handleCreatePortfolio = async (data) => {
@@ -264,6 +278,29 @@ export default function Dashboard() {
           </Link>
         )}
       </div>
+
+      {/* ── Analytics ────────────────────────────────────────────── */}
+      {portfolio && (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <h2 className="mb-4 text-lg font-semibold">Analytics</h2>
+          {analyticsLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse rounded-xl border border-slate-800 bg-slate-800/50 p-5 h-24" />
+              ))}
+            </div>
+          ) : analytics ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard icon="👁" label="Portfolio Views"    value={analytics.portfolioViews   ?? 0} />
+              <StatCard icon="📄" label="Resume Downloads"  value={analytics.resumeDownloads  ?? 0} />
+              <StatCard icon="🚀" label="Project Clicks"    value={analytics.projectClicks    ?? 0} />
+              <StatCard icon="🏆" label="Certificate Views" value={analytics.certificateViews ?? 0} />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Analytics unavailable.</p>
+          )}
+        </section>
+      )}
 
       {/* ── Portfolio Section ─────────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
@@ -553,5 +590,15 @@ function InfoRow({ label, value, valueClass = "text-slate-300" }) {
       <span className="text-slate-500">{label}: </span>
       <span className={valueClass}>{value || "—"}</span>
     </p>
+  );
+}
+
+function StatCard({ icon, label, value }) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-5 text-center">
+      <p className="text-3xl">{icon}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-100">{value.toLocaleString()}</p>
+      <p className="mt-1 text-xs text-slate-400">{label}</p>
+    </div>
   );
 }

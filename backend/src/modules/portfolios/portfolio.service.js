@@ -84,6 +84,23 @@ export const portfolioService = {
     };
   },
 
+  // GET /api/portfolios/meta — distinct skills & roles from public portfolios
+  async getFilters() {
+    const [skills, roles] = await Promise.all([
+      Portfolio.distinct("skills", { isPublic: true }),
+      Portfolio.distinct("role",   { isPublic: true }),
+    ]);
+
+    return {
+      skills: skills
+        .filter((s) => typeof s === "string" && s.trim())
+        .sort((a, b) => a.localeCompare(b)),
+      roles: roles
+        .filter((r) => typeof r === "string" && r.trim())
+        .sort((a, b) => a.localeCompare(b)),
+    };
+  },
+
   // GET /api/portfolios/:slug — single public (or owner's own)
   async getBySlug(slug, requesterId = null) {
     const portfolio = await Portfolio.findOne({ portfolioSlug: slug }).populate(

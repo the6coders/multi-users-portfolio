@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import apiClient from "../services/apiClient";
+import { trackPortfolioView, trackProjectClick, trackCertificateView } from "../services/analytics";
 import PortfolioHeader from "../components/portfolio/PortfolioHeader";
 import CertificateCard from "../components/portfolio/CertificateCard";
 
@@ -11,6 +12,7 @@ export default function Portfolio() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const viewTracked = useRef(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -23,6 +25,12 @@ export default function Portfolio() {
         setPortfolio(pRes.data.portfolio);
         setProjects(prRes.data.projects);
         setCertificates(certRes.data.certificates);
+
+        // Fire portfolio-view once per page mount
+        if (!viewTracked.current) {
+          viewTracked.current = true;
+          trackPortfolioView(slug);
+        }
       } catch (err) {
         setError(err.response?.data?.message || "Portfolio not found.");
         setCertificates([]);
@@ -141,7 +149,7 @@ export default function Portfolio() {
         {certificates.length > 0 ? (
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {certificates.map((cert, i) => (
-              <CertificateCard key={i} cert={cert} />
+              <TrackedCertCard key={cert._id ?? i} cert={cert} />
             ))}
           </div>
         ) : (
@@ -278,6 +286,7 @@ function ProjectShowcaseCard({ project, themeColor, featured }) {
               href={project.liveUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackProjectClick(project._id)}
               className="rounded-md px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
               style={{ backgroundColor: themeColor }}
             >
@@ -289,6 +298,7 @@ function ProjectShowcaseCard({ project, themeColor, featured }) {
               href={project.githubUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackProjectClick(project._id)}
               className="rounded-md border border-slate-700 px-4 py-1.5 text-xs text-slate-300 transition hover:border-slate-500"
             >
               View Code ↗
@@ -298,6 +308,17 @@ function ProjectShowcaseCard({ project, themeColor, featured }) {
       </div>
     </article>
   );
+}
+
+function TrackedCertCard({ cert }) {
+  const tracked = useRef(false);
+  useEffect(() => {
+    if (!tracked.current && cert._id) {
+      tracked.current = true;
+      trackCertificateView(cert._id);
+    }
+  }, [cert._id]);
+  return <CertificateCard cert={cert} />;
 }
 
 function LoadingSkeleton() {

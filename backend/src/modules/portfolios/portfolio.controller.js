@@ -1,6 +1,11 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { portfolioService } from "./portfolio.service.js";
 
+export const getPortfolioFilters = asyncHandler(async (_req, res) => {
+  const filters = await portfolioService.getFilters();
+  res.status(200).json({ success: true, ...filters });
+});
+
 export const listPortfolios = asyncHandler(async (req, res) => {
   const { search, skill, role, sort, page, limit } = req.query;
   const result = await portfolioService.listPublic({ search, skill, role, sort, page, limit });

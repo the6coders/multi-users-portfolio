@@ -79,6 +79,14 @@ const portfolioSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    portfolioViews: {
+      type: Number,
+      default: 0,
+    },
+    resumeDownloads: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

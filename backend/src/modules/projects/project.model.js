@@ -53,6 +53,10 @@ const projectSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    clickCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

@@ -1,3 +1,5 @@
+import { trackResumeDownload } from "../../services/analytics";
+
 export default function PortfolioHeader({ portfolio, owner }) {
   return (
     <section
@@ -75,6 +77,7 @@ export default function PortfolioHeader({ portfolio, owner }) {
                   href={`/api/media/resume/download/${portfolio.portfolioSlug}`}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => trackResumeDownload(portfolio.portfolioSlug)}
                   className="inline-flex items-center gap-1.5 rounded-full border border-teal-600 bg-teal-600/10 px-4 py-1.5 text-sm text-teal-300 transition hover:border-teal-400 hover:text-teal-200"
                 >
                   📥 Download Resume

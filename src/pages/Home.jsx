@@ -3,23 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import apiClient from "../services/apiClient";
 import { SkeletonCard } from "../components/common/Skeleton";
 
-// ── Constants ─────────────────────────────────────────────────
-const SKILLS = [
-  "React", "Vue.js", "Angular", "Next.js",
-  "Node.js", "Express", "MongoDB", "PostgreSQL",
-  "JavaScript", "TypeScript", "Python",
-];
-
-const ROLES = [
-  "Software Engineer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Full Stack Developer",
-  "UI/UX Designer",
-  "Data Scientist",
-  "DevOps Engineer",
-];
-
 const SELECT_CLS =
   "rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 " +
   "transition focus:border-teal-500 focus:outline-none cursor-pointer";
@@ -131,6 +114,9 @@ export default function Home() {
   const [searchInput, setSearchInput] = useState(currentSearch);
   const debounceRef = useRef(null);
 
+  // Filter options from database
+  const [filterMeta, setFilterMeta] = useState({ skills: [], roles: [] });
+
   // Data state
   const [portfolios, setPortfolios] = useState([]);
   const [pagination, setPagination] = useState({
@@ -139,6 +125,14 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [fetchKey, setFetchKey] = useState(0); // bump to force retry
+
+  // Fetch distinct skills + roles once on mount
+  useEffect(() => {
+    apiClient
+      .get("/portfolios/meta")
+      .then((res) => setFilterMeta({ skills: res.data.skills ?? [], roles: res.data.roles ?? [] }))
+      .catch(() => { /* non-critical — dropdowns just stay empty */ });
+  }, []);
 
   // Keep local search input in sync with URL (back/forward navigation)
   useEffect(() => {
@@ -265,9 +259,10 @@ export default function Home() {
             value={currentSkill}
             onChange={(e) => setFilter("skill", e.target.value)}
             className={SELECT_CLS}
+            disabled={filterMeta.skills.length === 0}
           >
             <option value="">All Skills</option>
-            {SKILLS.map((s) => (
+            {filterMeta.skills.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
@@ -278,9 +273,10 @@ export default function Home() {
             value={currentRole}
             onChange={(e) => setFilter("role", e.target.value)}
             className={SELECT_CLS}
+            disabled={filterMeta.roles.length === 0}
           >
             <option value="">All Roles</option>
-            {ROLES.map((r) => (
+            {filterMeta.roles.map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
           </select>

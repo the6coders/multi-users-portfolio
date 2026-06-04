@@ -3,6 +3,7 @@ import { protect } from "../../middlewares/authMiddleware.js";
 import {
   listPortfolios,
   getPortfolioBySlug,
+  getPortfolioFilters,
   createPortfolio,
   updatePortfolio,
   deletePortfolio,
@@ -21,6 +22,7 @@ function validateCreate(req, _res, next) {
 
 // Public
 router.get("/", listPortfolios);
+router.get("/meta", getPortfolioFilters); // MUST be before /:slug
 router.get("/:slug", getPortfolioBySlug);
 
 // Protected — authenticated users only
