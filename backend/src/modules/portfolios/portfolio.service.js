@@ -9,12 +9,79 @@ function buildSlug(str) {
     .replace(/(^-|-$)/g, "");
 }
 
+// Escape regex metacharacters to prevent ReDoS
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const SORT_MAP = {
+  newest:       { createdAt: -1 },
+  oldest:       { createdAt:  1 },
+  alphabetical: { portfolioSlug: 1 },
+};
+
 export const portfolioService = {
-  // GET /api/portfolios — all public portfolios
-  async listPublic() {
-    return Portfolio.find({ isPublic: true })
-      .select("portfolioSlug headline role profileImage themeColor userId")
-      .populate("userId", "name username");
+  // GET /api/portfolios — paginated, filtered, sorted public portfolios
+  async listPublic({ search, skill, role, sort, page, limit } = {}) {
+    const filter = { isPublic: true };
+
+    // ── Search ────────────────────────────────────────────────
+    // Searches: headline, role, portfolioSlug, and owner name (via User lookup)
+    if (search && search.trim()) {
+      const safe  = escapeRegex(search.trim());
+      const regex = new RegExp(safe, "i");
+
+      // Find matching user IDs by name
+      const matchingUsers = await User.find({ name: regex }).select("_id").lean();
+      const userIds = matchingUsers.map((u) => u._id);
+
+      filter.$or = [
+        { headline:      regex },
+        { role:          regex },
+        { portfolioSlug: regex },
+        ...(userIds.length ? [{ userId: { $in: userIds } }] : []),
+      ];
+    }
+
+    // ── Skill filter ──────────────────────────────────────────
+    // Case-insensitive exact match against the skills array
+    if (skill && skill.trim()) {
+      const safe = escapeRegex(skill.trim());
+      filter.skills = new RegExp(`^${safe}$`, "i");
+    }
+
+    // ── Role filter ───────────────────────────────────────────
+    // Case-insensitive substring match
+    if (role && role.trim()) {
+      const safe = escapeRegex(role.trim());
+      filter.role = new RegExp(safe, "i");
+    }
+
+    // ── Sort ──────────────────────────────────────────────────
+    const sortObj = SORT_MAP[sort] ?? SORT_MAP.newest;
+
+    // ── Pagination ────────────────────────────────────────────
+    const pageNum  = Math.max(1, parseInt(page)  || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 9));
+    const skip     = (pageNum - 1) * limitNum;
+
+    const [portfolios, totalItems] = await Promise.all([
+      Portfolio.find(filter)
+        .select("portfolioSlug headline role profileImage themeColor userId skills")
+        .populate("userId", "name username")
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Portfolio.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / limitNum));
+
+    return {
+      portfolios,
+      pagination: { page: pageNum, limit: limitNum, totalItems, totalPages },
+    };
   },
 
   // GET /api/portfolios/:slug — single public (or owner's own)

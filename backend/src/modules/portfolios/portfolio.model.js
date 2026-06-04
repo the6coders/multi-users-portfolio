@@ -83,4 +83,10 @@ const portfolioSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound indexes for common list-query patterns
+portfolioSchema.index({ isPublic: 1, createdAt: -1 });
+portfolioSchema.index({ isPublic: 1, portfolioSlug: 1 });
+portfolioSchema.index({ isPublic: 1, skills: 1 });
+portfolioSchema.index({ isPublic: 1, role: 1 });
+
 export const Portfolio = mongoose.model("Portfolio", portfolioSchema);
